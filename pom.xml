@@ -24,9 +24,9 @@
   </prerequisites>
 
   <scm>
-    <connection>scm:git:https://git@bitbucket.org/mcmartins/maven-plugins.git</connection>
-    <developerConnection>scm:git:git://git@bitbucket.org/mcmartins/maven-plugins.git</developerConnection>
-    <url>https://bitbucket.org/mcmartins/maven-plugins/overview</url>
+    <connection>scm:svn:https://mcmartins-maven-repository.googlecode.com/svn/</connection>
+    <developerConnection>scm:svn:https://mcmartins-maven-repository.googlecode.com/svn/</developerConnection>
+    <url>https://code.google.com/p/mcmartins-maven-repository/</url>
   </scm>
 
   <developers>
@@ -57,15 +57,43 @@
             <encoding>${project.build.sourceEncoding}</encoding>
           </configuration>
         </plugin>
-        <!-- Plexus plugin -->
         <plugin>
-          <groupId>org.codehaus.plexus</groupId>
-          <artifactId>plexus-maven-plugin</artifactId>
-          <version>1.3.8</version>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-invoker-plugin</artifactId>
+          <version>1.7</version>
+          <configuration>
+            <debug>true</debug>
+            <postBuildHookScript>verify</postBuildHookScript>
+            <localRepositoryPath>${project.build.directory}/local-repo</localRepositoryPath>
+            <goals>
+              <goal>clean</goal>
+              <goal>process-test-resources</goal>
+            </goals>
+            <settingsFile>src/it/settings.xml</settingsFile>
+            <cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
+            <properties>
+              <execProps>fromExecProps</execProps>
+            </properties>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-plugin-plugin</artifactId>
+          <version>${mavenPluginPluginVersion}</version>
+          <configuration>
+            <skipErrorNoDescriptorsFound>true</skipErrorNoDescriptorsFound>
+          </configuration>
           <executions>
             <execution>
+              <id>mojo-descriptor</id>
               <goals>
                 <goal>descriptor</goal>
+              </goals>
+            </execution>
+            <execution>
+              <id>help-goal</id>
+              <goals>
+                <goal>helpmojo</goal>
               </goals>
             </execution>
           </executions>
@@ -73,15 +101,27 @@
       </plugins>
     </pluginManagement>
     <plugins>
-      <!-- Plexus plugin -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>test-jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.codehaus.plexus</groupId>
         <artifactId>plexus-maven-plugin</artifactId>
-      </plugin>
-      <!-- Java compiler version -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>test-descriptor</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
     <!-- Wagon -->
@@ -96,34 +136,65 @@
 
   <dependencyManagement>
     <dependencies>
-
-      <!-- Maven -->
-      <dependency>
-        <groupId>org.apache.maven.shared</groupId>
-        <artifactId>maven-filtering</artifactId>
-        <version>1.1</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.maven</groupId>
-        <artifactId>maven-model</artifactId>
-        <version>2.2.1</version>
-      </dependency>
       <dependency>
         <groupId>org.apache.maven</groupId>
         <artifactId>maven-plugin-api</artifactId>
-        <version>2.2.1</version>
+        <version>${mavenVersion}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.maven</groupId>
         <artifactId>maven-project</artifactId>
-        <version>2.2.1</version>
+        <version>${mavenVersion}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.maven</groupId>
+        <artifactId>maven-core</artifactId>
+        <version>${mavenVersion}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.maven</groupId>
+        <artifactId>maven-artifact</artifactId>
+        <version>${mavenVersion}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.maven</groupId>
+        <artifactId>maven-settings</artifactId>
+        <version>${mavenVersion}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.maven</groupId>
+        <artifactId>maven-model</artifactId>
+        <version>${mavenVersion}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.maven</groupId>
+        <artifactId>maven-monitor</artifactId>
+        <version>${mavenVersion}</version>
       </dependency>
 
-      <!-- Plexus -->
       <dependency>
-        <groupId>org.sonatype.plexus</groupId>
-        <artifactId>plexus-sec-dispatcher</artifactId>
-        <version>1.4</version>
+        <groupId>org.codehaus.plexus</groupId>
+        <artifactId>plexus-container-default</artifactId>
+        <version>1.5.5</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.maven.plugin-tools</groupId>
+        <artifactId>maven-plugin-annotations</artifactId>
+        <version>${mavenPluginPluginVersion}</version>
+        <scope>provided</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.maven.shared</groupId>
+        <artifactId>maven-filtering</artifactId>
+        <version>${mavenFilteringVersion}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.codehaus.plexus</groupId>
+        <artifactId>plexus-interpolation</artifactId>
+        <version>1.16</version>
       </dependency>
       <dependency>
         <groupId>org.codehaus.plexus</groupId>
@@ -131,17 +202,35 @@
         <version>3.0.10</version>
       </dependency>
 
+      <dependency>
+        <groupId>org.sonatype.plexus</groupId>
+        <artifactId>plexus-sec-dispatcher</artifactId>
+        <version>1.4</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.maven.shared</groupId>
+        <artifactId>maven-plugin-testing-harness</artifactId>
+        <version>1.0-beta-1</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>commons-io</groupId>
+        <artifactId>commons-io</artifactId>
+        <version>1.4</version>
+        <scope>test</scope>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
   <distributionManagement>
     <repository>
-      <id>bitbucket.releases.repo</id>
-      <url>dav:git://git@bitbucket.org/mcmartins/maven-plugins.git</url>
+      <id>mcmartins-maven-repository</id>
+      <url>dav:https://mcmartins-maven-repository.googlecode.com/svn/maven/plugins/releases/</url>
     </repository>
     <snapshotRepository>
-      <id>bitbucket.snapshots.repo</id>
-      <url>dav:git://git@bitbucket.org/mcmartins/maven-plugins.git</url>
+      <id>mcmartins-maven-repository-snapshot</id>
+      <url>dav:https://mcmartins-maven-repository.googlecode.com/svn/maven/plugins/snapshots/</url>
       <uniqueVersion>false</uniqueVersion>
     </snapshotRepository>
   </distributionManagement>
@@ -150,5 +239,8 @@
   <properties>
     <!-- Sets the project's default encoding. http://docs.codehaus.org/display/MAVENUSER/POM+Element+for+Source+File+Encoding -->
     <project.build.sourceEncoding>utf-8</project.build.sourceEncoding>
+    <mavenFilteringVersion>1.1</mavenFilteringVersion>
+    <mavenVersion>2.2.1</mavenVersion>
+    <mavenPluginPluginVersion>3.2</mavenPluginPluginVersion>
   </properties>
 </project>
