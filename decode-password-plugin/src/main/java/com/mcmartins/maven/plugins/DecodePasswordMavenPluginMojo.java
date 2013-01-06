@@ -30,29 +30,73 @@ import org.sonatype.plexus.components.sec.dispatcher.SecDispatcherException;
 import org.sonatype.plexus.components.sec.dispatcher.model.SettingsSecurity;
 
 /**
- * Decryption utility plugin for maven resources.
+ * Decode Password utility plugin allows to insert encoded information within the project without having it hardcoded
+ * (e.g. single profiles.xml containing all the profiles - Production, Development, Developer1, Testing). The encoded
+ * information will only be processed if the right master password is provided (see <a
+ * href="http://maven.apache.org/guides/mini/guide-encryption.html">maven encryption guide</a>).
+ * <p/>
+ * Basically all information defined within the project as properties (e.g. within the profiles.xml, properties tag,
+ * etc) surrounded by curly brackets <b>{}</b>  will be decoded using the settings-security.xml master password, <b>if
+ * valid only</b>.
+ * <p/>
+ * settings-security.xml file is loaded by the following order: <ul> <li>1st System Property (passed as argument for the
+ * MAVEN_OPTS e.g. -Dsettings.security=/private/settings-security.xml);</li> <li>2nd Plugin Configuration
+ * securitySettingsPath (User defined on the plugin configuration);</li> <li>3rd User Home .m2 directory;</li> <li>4th
+ * Maven Home .m2 directory;</li> </ul>
+ * <p/>
+ * The first that occurs is the one used. If none is found the plugin will throw a {@link RuntimeException}.
+ * <p/>
+ * The plugin works using the Maven Password Encryption/Decryption system. In order to use this plugin ensure you have
+ * generated a master password and encoded your project passwords using it. Please refer to the Maven documentation at:
+ * <a href="http://maven.apache.org/guides/mini/guide-encryption.html">encryption guide</a>.
+ * <p/>
  * <p/>
  * Usage:
- * <p/>
  * <pre>
- *     {@code
+ * {@code
+ * ...
+ *  <build>
+ *      ...
+ *     <plugins>
+ *         ...
+ *         <plugin>
+ *              <groupId>com.mcmartins.maven</groupId>
+ *              <artifactId>decode-password-plugin</artifactId>
+ *              <version>0.0.1</version>
+ *              <executions>
+ *                  <execution>
+ *                    <id>decode-passwords</id>
+ *                    <phase>initialize</phase>
+ *                    <goals>
+ *                      <goal>process</goal>
+ *                    </goals>
+ *                  </execution>
+ *              </executions>
+ *              <configuration>
+ *                  <!-- Optional configuration -->
+ *                  <securitySettingsPath>/path/to/security-settings.xml</securitySettingsPath>
+ *              </configuration>
+ *          </plugin>
+ *          ...
+ *     </plugins>
  *     ...
- *    <plugin>
- *      <groupId>com.mcmartins.maven.hints</groupId>
- *      <artifactId>decode-password-plugin</artifactId>
- *      <version>0.0.1</version>
- *      <executions>
- *          <execution>
- *            <id>decode</id>
- *            <phase>initialize</phase>
- *            <goals>
- *              <goal>decode-password</goal>
- *            </goals>
- *          </execution>
- *      </executions>
- *    </plugin>
- *     ...
- *     }
+ *  </build>
+ * ...
+ *  <pluginRepositories>
+ *      ...
+ *      <pluginRepository>
+ *          <id>mcmartins-maven-repository</id>
+ *          <url>http://mcmartins-maven-repository.googlecode.com/svn/maven/plugins/releases</url>
+ *          <snapshots>
+ *              <enabled>false</enabled>
+ *          </snapshots>
+ *      </pluginRepository>
+ *      ...
+ *  </pluginRepositories>
+ * ...
+ * }
+ *
+ *
  * </pre>
  *
  * @author Manuel Martins
@@ -70,11 +114,10 @@ public class DecodePasswordMavenPluginMojo extends AbstractMavenPluginMojo {
      */
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        // if is the first time, load security settings file and get master password
+        // if is the first time, load security settings file and process the project properties
         if (!alreadyProcessed) {
             try {
                 logInfo("Starting to process project properties...");
-                // decode master password
                 final SettingsSecurity settingsSecurity = this.getSettingSecurity();
                 final String plainTextMasterPassword = CipherUtils.decode(settingsSecurity.getMaster(),
                         DefaultSecDispatcher.SYSTEM_PROPERTY_SEC_LOCATION);
@@ -83,31 +126,29 @@ public class DecodePasswordMavenPluginMojo extends AbstractMavenPluginMojo {
                 while (keys.hasMoreElements()) {
                     final String key = (String) keys.nextElement();
                     final String value = (String) projectProperties.get(key);
-                    // if property matches the pattern {.*}, decode
+                    // if property matches the pattern {.*}, try to decode it
                     if (value.matches(PASSWORD_PLACEHOLDER)) {
-                        logInfo(MessageFormat.format("Processing property with key: {0}", key));
-                        // warn about errors decrypting passwords, probably the master password is not the key for this one
+                        logInfo(MessageFormat.format("Processing property with key [{0}]", key));
                         try {
                             decodedProperties.setProperty(key, CipherUtils.decode(value, plainTextMasterPassword));
                         } catch (final PlexusCipherException e) {
-                            logWarn("Error decoding password. It seams you cannot decrypt this one...");
+                            // warn about errors when decrypting passwords, probably the master password is not the key for this one - skip
+                            logWarn("Error decoding password. It seams you cannot decrypt this one with your master password, skipping...");
                         }
                     }
                 }
-                logInfo("Finished process project properties.");
-                logInfo("Merging properties...");
-                this.getProject().getProperties().putAll(decodedProperties);
+                logInfo("Finished processing project properties.");
                 alreadyProcessed = true;
             } catch (final PlexusCipherException e) {
                 logError("Error decoding master password.", e);
-            } catch (final SecDispatcherException e) {
-                logError(MessageFormat.format("Error loading file: {0}.",
+                throw new RuntimeException(MessageFormat.format("Failed to decode Master Password from {0}.",
                         SETTINGS_SECURITY_FILE), e);
-                throw new RuntimeException(MessageFormat.format("Failed to load file: {0}", SETTINGS_SECURITY_FILE), e);
+            } catch (final SecDispatcherException e) {
+                logError(MessageFormat.format("Error loading file {0}.", SETTINGS_SECURITY_FILE), e);
+                throw new RuntimeException(MessageFormat.format("Failed to load file {0}.", SETTINGS_SECURITY_FILE), e);
             }
-        } else {
-            logInfo("Merging properties...");
-            this.getProject().getProperties().putAll(decodedProperties);
         }
+        logInfo("Merging properties...");
+        this.getProject().getProperties().putAll(decodedProperties);
     }
 }
