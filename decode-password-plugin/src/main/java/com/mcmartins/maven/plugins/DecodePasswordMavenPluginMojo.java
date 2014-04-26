@@ -35,28 +35,16 @@ import org.sonatype.plexus.components.sec.dispatcher.model.SettingsSecurity;
  * information will only be processed if the right master password is provided (see <a
  * href="http://maven.apache.org/guides/mini/guide-encryption.html">maven encryption guide</a>).
  * <p/>
- * Basically all information defined within the project as properties (e.g. within the profiles.xml, properties tag,
-<<<<<<< HEAD
- * etc) surrounded by curly brackets <b>{ }</b>  will be decoded using the Settings Security master password, <b>if
- * valid only</b>.
- * <p/>
- * Settings Security file is loaded by the following order: <ul> <li>1st System Property (passed as argument for the
-=======
+ * Basically, all information defined within the project as properties (e.g. within the profiles.xml, properties tag,
  * etc) surrounded by curly brackets <b>{}</b>  will be decoded using the settings-security.xml master password, <b>if
  * valid only</b>.
  * <p/>
  * settings-security.xml file is loaded by the following order: <ul> <li>1st System Property (passed as argument for the
->>>>>>> da00343c93bcf18ac7cb0ba89f486bbc2ac6953d
  * MAVEN_OPTS e.g. -Dsettings.security=/private/settings-security.xml);</li> <li>2nd Plugin Configuration
  * securitySettingsPath (User defined on the plugin configuration);</li> <li>3rd User Home .m2 directory;</li> <li>4th
  * Maven Home .m2 directory;</li> </ul>
  * <p/>
-<<<<<<< HEAD
- * The first that occurs is the one used. If none is found the plugin will throw a {@link RuntimeException}. The name of
- * the file <b>shall</b>  be <b>settings-security.xml</b> unless you specify it.
-=======
  * The first that occurs is the one used. If none is found the plugin will throw a {@link RuntimeException}.
->>>>>>> da00343c93bcf18ac7cb0ba89f486bbc2ac6953d
  * <p/>
  * The plugin works using the Maven Password Encryption/Decryption system. In order to use this plugin ensure you have
  * generated a master password and encoded your project passwords using it. Please refer to the Maven documentation at:
@@ -85,18 +73,8 @@ import org.sonatype.plexus.components.sec.dispatcher.model.SettingsSecurity;
  *                  </execution>
  *              </executions>
  *              <configuration>
-<<<<<<< HEAD
- *                  <!-- Optional configurations -->
- *                  <!-- Absolute Path to the settings-security file. Could contain the file name. If this
- * configuration is used with a file name, the securitySettingsFileName configuration will be ignored. -->
- *                  <securitySettingsPath>/path/to/security-settings.xml</securitySettingsPath>
- *                  <!-- The settings-security file name. If none is provided the default is used -
- * settings-security.xml -->
- *                  <securitySettingsFileName>my-security-settings.xml</securitySettingsFileName>
-=======
  *                  <!-- Optional configuration -->
  *                  <securitySettingsPath>/path/to/security-settings.xml</securitySettingsPath>
->>>>>>> da00343c93bcf18ac7cb0ba89f486bbc2ac6953d
  *              </configuration>
  *          </plugin>
  *          ...
